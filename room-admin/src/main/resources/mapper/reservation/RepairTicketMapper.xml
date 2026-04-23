@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.room.reservation.mapper.RepairTicketMapper">
+    <resultMap id="RepResult" type="RepairTicket">
+        <id property="id" column="id"/>
+        <result property="roomName" column="room_name"/>
+        <result property="seatNumber" column="seat_number"/>
+        <result property="reporterUserId" column="reporter_user_id"/>
+        <result property="faultType" column="fault_type"/>
+        <result property="content" column="content"/>
+        <result property="status" column="status"/>
+        <result property="assignee" column="assignee"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+    <sql id="c">id, room_name, seat_number, reporter_user_id, fault_type, content, status, assignee, create_time, update_time</sql>
+    <select id="selectRepairList" resultMap="RepResult">
+        select <include refid="c"/> from room_repair_ticket
+        <where>
+            <if test="roomName != null and roomName != ''">and room_name = #{roomName}</if>
+            <if test="status != null and status != ''">and status = #{status}</if>
+        </where>
+        order by id desc
+    </select>
+    <select id="selectRepairById" resultMap="RepResult">
+        select <include refid="c"/> from room_repair_ticket where id = #{id}
+    </select>
+    <insert id="insertRepair" useGeneratedKeys="true" keyProperty="id">
+        insert into room_repair_ticket (room_name, seat_number, reporter_user_id, fault_type, content, status, assignee)
+        values (#{roomName}, #{seatNumber}, #{reporterUserId}, #{faultType}, #{content},
+                #{status}, #{assignee})
+    </insert>
+    <update id="updateRepair">
+        update room_repair_ticket
+        <set>
+            <if test="status != null">status = #{status},</if>
+            <if test="assignee != null">assignee = #{assignee},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="faultType != null">fault_type = #{faultType},</if>
+            <if test="roomName != null">room_name = #{roomName},</if>
+            <if test="seatNumber != null">seat_number = #{seatNumber},</if>
+        </set>
+        where id = #{id}
+    </update>
+    
+    <delete id="deleteRepairById" parameterType="Long">
+        delete from room_repair_ticket where id = #{id}
+    </delete>
+</mapper>

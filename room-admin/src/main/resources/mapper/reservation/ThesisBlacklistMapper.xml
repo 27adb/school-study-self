@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.room.reservation.mapper.ThesisBlacklistMapper">
+
+    <select id="countActiveByUserId" resultType="int">
+        select count(*) from room_blacklist
+        where user_id = #{userId} and status = '0' and until_date &gt;= curdate()
+    </select>
+
+    <resultMap id="BlacklistResult" type="BlacklistEntry">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="reason" column="reason"/>
+        <result property="untilDate" column="until_date"/>
+        <result property="status" column="status"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="cols">id, user_id, reason, until_date, status, create_by, create_time, remark</sql>
+
+    <select id="selectBlacklistList" resultMap="BlacklistResult">
+        select <include refid="cols"/> from room_blacklist
+        <where>
+            <if test="userId != null">and user_id = #{userId}</if>
+            <if test="status != null and status != ''">and status = #{status}</if>
+        </where>
+        order by id desc
+    </select>
+
+    <select id="selectBlacklistById" resultMap="BlacklistResult">
+        select <include refid="cols"/> from room_blacklist where id = #{id}
+    </select>
+
+    <insert id="insertBlacklist" useGeneratedKeys="true" keyProperty="id">
+        insert into room_blacklist (user_id, reason, until_date, status, create_by, remark)
+        values (#{userId}, #{reason}, #{untilDate}, #{status}, #{createBy}, #{remark})
+    </insert>
+
+    <update id="updateBlacklist">
+        update room_blacklist
+        <set>
+            <if test="reason != null">reason = #{reason},</if>
+            <if test="untilDate != null">until_date = #{untilDate},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteBlacklistById">
+        delete from room_blacklist where id = #{id}
+    </delete>
+</mapper>

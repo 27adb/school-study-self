@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.room.reservation.mapper.ThesisUsageAlertMapper">
+    <insert id="insertAlert">
+        insert into room_usage_alert (room_id, alert_date, rate_percent, message)
+        values (#{roomId}, #{alertDate}, #{rate}, #{message})
+    </insert>
+    <select id="selectUnreadAlerts" resultType="java.util.HashMap">
+        select id, room_id as roomId, alert_date as alertDate, rate_percent as ratePercent, message
+        from room_usage_alert where is_read = '0' order by id desc
+    </select>
+    <update id="markAlertRead">
+        update room_usage_alert set is_read = '1' where id = #{id}
+    </update>
+    <select id="countAlertOnDate" resultType="int">
+        select count(*) from room_usage_alert where room_id = #{roomId} and alert_date = #{alertDate}
+    </select>
+</mapper>

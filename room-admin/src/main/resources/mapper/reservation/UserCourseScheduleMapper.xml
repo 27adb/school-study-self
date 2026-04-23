@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.room.reservation.mapper.UserCourseScheduleMapper">
+
+    <resultMap id="CourseResult" type="UserCourseSchedule">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="weekDay" column="week_day"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="courseName" column="course_name"/>
+    </resultMap>
+
+    <select id="selectByUserId" resultMap="CourseResult">
+        select id, user_id, week_day, date_format(start_time,'%H:%i:%s') as start_time,
+               date_format(end_time,'%H:%i:%s') as end_time, course_name
+        from room_user_course where user_id = #{userId}
+    </select>
+
+    <insert id="insertUserCourse" useGeneratedKeys="true" keyProperty="id">
+        insert into room_user_course (user_id, week_day, start_time, end_time, course_name)
+        values (#{userId}, #{weekDay}, #{startTime}, #{endTime}, #{courseName})
+    </insert>
+
+    <delete id="deleteUserCourse">
+        delete from room_user_course where id = #{id} and user_id = #{userId}
+    </delete>
+</mapper>

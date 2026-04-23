@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.room.reservation.mapper.ThesisStudyMapper">
+    <select id="selectTotalMinutes" resultType="long">
+        select ifnull((select total_effective_minutes from room_user_study_stats where user_id = #{userId}), 0)
+    </select>
+    <insert id="addEffectiveMinutes">
+        insert into room_user_study_stats (user_id, total_effective_minutes)
+        values (#{userId}, #{minutes})
+        on duplicate key update total_effective_minutes = total_effective_minutes + #{minutes}
+    </insert>
+    <select id="selectAllMedalDef" resultType="java.util.HashMap">
+        select code, name, need_minutes as needMinutes, perk_desc as perkDesc, sort_order as sortOrder
+        from room_medal_def order by sort_order asc
+    </select>
+    <select id="selectUserMedals" resultType="java.util.HashMap">
+        select m.medal_code as code, d.name, m.unlock_time as unlockTime, m.redeemed
+        from room_user_medal m join room_medal_def d on m.medal_code = d.code
+        where m.user_id = #{userId}
+        order by m.unlock_time desc
+    </select>
+    <insert id="insertUserMedalIgnore">
+        insert ignore into room_user_medal (user_id, medal_code, unlock_time, redeemed)
+        values (#{userId}, #{code}, now(), '0')
+    </insert>
+    <update id="redeemMedal">
+        update room_user_medal set redeemed = '1' where user_id = #{userId} and medal_code = #{code}
+    </update>
+
+    <select id="countRedeemedMedals" resultType="int">
+        select ifnull(count(1), 0) from room_user_medal
+        where user_id = #{userId} and redeemed = '1'
+    </select>
+
+    <insert id="insertMedalDef">
+        insert into room_medal_def (code, name, need_minutes, perk_desc, sort_order)
+        values (#{code}, #{name}, #{needMinutes}, #{perkDesc}, #{sortOrder})
+    </insert>
+    <update id="updateMedalDef">
+        update room_medal_def set name = #{name}, need_minutes = #{needMinutes},
+        perk_desc = #{perkDesc}, sort_order = #{sortOrder} where code = #{code}
+    </update>
+    <delete id="deleteMedalDef">
+        delete from room_medal_def where code = #{code}
+    </delete>
+</mapper>

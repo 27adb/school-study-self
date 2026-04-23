@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.room.reservation.mapper.RoomSeatMapper">
+
+    <resultMap type="RoomSeat" id="RoomSeatResult">
+        <result property="id"    column="id"    />
+        <result property="seatNum"    column="seat_num"    />
+        <result property="roomId"    column="room_id"    />
+        <result property="rowNum"    column="row_num"    />
+        <result property="colNum"    column="col_num"    />
+        <result property="status"    column="status"    />
+    </resultMap>
+
+    <sql id="selectRoomSeatVo">
+        select id, seat_num, room_id, row_num, col_num, status from room_seat
+    </sql>
+
+    <select id="selectRoomSeatList" parameterType="RoomSeat" resultMap="RoomSeatResult">
+        <include refid="selectRoomSeatVo"/>
+        <where>
+            <if test="roomId != null "> and room_id = #{roomId}</if>
+            <if test="status != null "> and status = #{status}</if>
+        </where>
+    </select>
+
+    <select id="selectRoomSeatById" parameterType="Integer" resultMap="RoomSeatResult">
+        <include refid="selectRoomSeatVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertRoomSeat" parameterType="RoomSeat" useGeneratedKeys="true" keyProperty="id">
+        insert into room_seat
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="seatNum != null and seatNum != ''">seat_num,</if>
+            <if test="roomId != null">room_id,</if>
+            <if test="rowNum != null">row_num,</if>
+            <if test="colNum != null">col_num,</if>
+            <if test="status != null">status,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="seatNum != null and seatNum != ''">#{seatNum},</if>
+            <if test="roomId != null">#{roomId},</if>
+            <if test="rowNum != null">#{rowNum},</if>
+            <if test="colNum != null">#{colNum},</if>
+            <if test="status != null">#{status},</if>
+        </trim>
+    </insert>
+
+    <update id="updateRoomSeat" parameterType="RoomSeat">
+        update room_seat
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="seatNum != null and seatNum != ''">seat_num = #{seatNum},</if>
+            <if test="roomId != null">room_id = #{roomId},</if>
+            <if test="rowNum != null">row_num = #{rowNum},</if>
+            <if test="colNum != null">col_num = #{colNum},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteRoomSeatById" parameterType="Integer">
+        delete from room_seat where id = #{id}
+    </delete>
+
+    <delete id="deleteRoomSeatByIds" parameterType="String">
+        delete from room_seat where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

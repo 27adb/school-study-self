@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.room.reservation.mapper.ThesisDashboardMapper">
+    <select id="selectTodayRoomUsage" resultType="java.util.HashMap">
+        select r.id as roomId, r.name,
+               r.comfort_score as comfortScore,
+               (select count(*) from room_seat s where s.room_id = r.id) as totalSeats,
+               (select count(*) from room_reservation rv
+                 join room_seat s2 on rv.seat_id = s2.id and s2.room_id = r.id
+                 where date(rv.reservation_in_time) = curdate()
+                   and rv.reservation_status in ('已预约','使用中')
+                   and (rv.audit_status is null or rv.audit_status in ('无需审核','已通过','待审核'))) as reservedToday
+        from room r
+    </select>
+    <select id="selectMonthlyReservationCount" resultType="java.util.HashMap">
+        select date_format(reservation_in_time, '%Y-%m') as ym, count(*) as cnt
+        from room_reservation
+        where reservation_in_time &gt;= date_sub(curdate(), interval 6 month)
+        group by date_format(reservation_in_time, '%Y-%m')
+        order by ym
+    </select>
+    <select id="selectComfortDistribution" resultType="java.util.HashMap">
+        select name, comfort_score as comfortScore from room order by comfort_score desc
+    </select>
+    <select id="selectStudyTimeRank" resultType="java.util.HashMap">
+        select user_id as userId, total_effective_minutes as totalMinutes from room_user_study_stats
+        order by total_effective_minutes desc limit 50
+    </select>
+    <select id="selectHourlyReservationToday" resultType="java.util.HashMap">
+        select hour(reservation_in_time) as hr, count(*) as cnt
+        from room_reservation
+        where date(reservation_in_time) = curdate()
+        group by hour(reservation_in_time)
+        order by hr
+    </select>
+</mapper>

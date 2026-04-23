@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.room.reservation.mapper.ThesisAppReminderMapper">
+    <insert id="insertReminder">
+        insert into room_app_reminder (user_id, reservation_id, title, body, fire_time)
+        values (#{userId}, #{reservationId}, #{title}, #{body}, #{fireTime})
+    </insert>
+    <select id="selectUnreadByUser" resultType="java.util.HashMap">
+        select id, reservation_id as reservationId, title, body, fire_time as fireTime, is_read as isRead
+        from room_app_reminder where user_id = #{userId} and is_read = '0'
+        order by fire_time asc
+    </select>
+    <update id="markRead">
+        update room_app_reminder set is_read = '1' where id = #{id} and user_id = #{userId}
+    </update>
+</mapper>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.room.reservation.mapper.CampusVerifyCodeMapper">
+
+    <insert id="insertCampusVerifyCode" useGeneratedKeys="true" keyProperty="id">
+        insert into room_campus_code (campus_account, code, expire_time)
+        values (#{campusAccount}, #{code}, #{expireTime})
+    </insert>
+
+    <select id="selectLatest" resultType="CampusVerifyCode">
+        select id, campus_account as campusAccount, code, expire_time as expireTime, create_time as createTime
+        from room_campus_code
+        where campus_account = #{campusAccount}
+        order by id desc
+        limit 1
+    </select>
+
+    <delete id="deleteExpired">
+        delete from room_campus_code where expire_time &lt; now()
+    </delete>
+</mapper>

@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.room.reservation.mapper.RoomReservationMapper">
+    
+    <resultMap type="RoomReservation" id="RoomReservationResult">
+        <result property="id"    column="id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="seatId"    column="seat_id"    />
+        <result property="status"    column="status"    />
+        <result property="reservationStatus"    column="reservation_status"    />
+        <result property="reservationInTime"    column="reservation_in_time"    />
+        <result property="reservationOutTime"    column="reservation_out_time"    />
+        <result property="signInTime"    column="sign_in_time"    />
+        <result property="signOutTime"    column="sign_out_time"    />
+        <result property="remark"    column="remark"    />
+        <result property="auditStatus"    column="audit_status"    />
+        <result property="carpoolGroupId"    column="carpool_group_id"    />
+        <result property="shareCode"    column="share_code"    />
+    </resultMap>
+
+    <sql id="selectRoomReservationVo">
+        select id, user_id, seat_id, status, reservation_status, reservation_in_time, reservation_out_time, sign_in_time, sign_out_time, remark, audit_status, carpool_group_id, share_code from room_reservation
+    </sql>
+
+    <select id="selectRoomReservationList" parameterType="RoomReservation" resultMap="RoomReservationResult">
+        <include refid="selectRoomReservationVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="seatId != null "> and seat_id = #{seatId}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="reservationStatus != null  and reservationStatus != ''"> and reservation_status = #{reservationStatus}</if>
+            <if test="auditStatus != null  and auditStatus != ''"> and audit_status = #{auditStatus}</if>
+            <if test="carpoolGroupId != null"> and carpool_group_id = #{carpoolGroupId}</if>
+        </where>
+        order by id desc
+    </select>
+    
+    <select id="selectRoomReservationById" parameterType="Long" resultMap="RoomReservationResult">
+        <include refid="selectRoomReservationVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectNoSignInOverdue" resultMap="RoomReservationResult">
+        <include refid="selectRoomReservationVo"/>
+        where reservation_status = '已预约'
+          and sign_in_time is null
+          and reservation_in_time is not null
+          and (audit_status is null or audit_status in ('无需审核', '已通过'))
+          and timestampdiff(MINUTE, reservation_in_time, now()) &gt;= #{minutes}
+    </select>
+
+    <select id="countSeatOverlap" resultType="int">
+        select count(*) from room_reservation
+        where seat_id = #{seatId}
+          and reservation_status in ('已预约','使用中')
+          and (audit_status is null or audit_status in ('无需审核','待审核','已通过'))
+          <if test="excludeId != null">and id != #{excludeId}</if>
+          and reservation_in_time &lt; #{end}
+          and reservation_out_time &gt; #{start}
+    </select>
+
+    <select id="countUserOverlap" resultType="int">
+        select count(*) from room_reservation
+        where user_id = #{userId}
+          and reservation_status in ('已预约','使用中')
+          and (audit_status is null or audit_status in ('无需审核','待审核','已通过'))
+          <if test="excludeId != null">and id != #{excludeId}</if>
+          and reservation_in_time &lt; #{end}
+          and reservation_out_time &gt; #{start}
+    </select>
+
+    <select id="selectSeatIdsByCarpoolGroup" resultType="long">
+        select distinct seat_id from room_reservation
+        where carpool_group_id = #{groupId}
+          and reservation_status in ('已预约','使用中')
+          and (audit_status is null or audit_status in ('无需审核','待审核','已通过'))
+    </select>
+
+    <select id="selectActiveByCarpoolGroup" resultMap="RoomReservationResult">
+        <include refid="selectRoomReservationVo"/>
+        where carpool_group_id = #{groupId}
+          and reservation_status in ('已预约','使用中')
+          and (audit_status is null or audit_status in ('无需审核','待审核','已通过'))
+    </select>
+
+    <select id="selectNeedingReminders" resultMap="RoomReservationResult">
+        <include refid="selectRoomReservationVo"/>
+        where reservation_status = '已预约'
+          and sign_in_time is null
+          and reservation_in_time &gt; now()
+          and reservation_in_time &lt;= date_add(now(), interval #{minutes} minute)
+          and (audit_status is null or audit_status in ('无需审核','已通过'))
+          and not exists (
+              select 1 from room_app_reminder ar
+              where ar.reservation_id = room_reservation.id and ar.title = '预约即将开始'
+          )
+    </select>
+
+    <insert id="insertRoomReservation" parameterType="RoomReservation" useGeneratedKeys="true" keyProperty="id">
+        insert into room_reservation
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="seatId != null">seat_id,</if>
+            <if test="status != null and status != ''">status,</if>
+            <if test="reservationStatus != null and reservationStatus != ''">reservation_status,</if>
+            <if test="reservationInTime != null">reservation_in_time,</if>
+            <if test="reservationOutTime != null">reservation_out_time,</if>
+            <if test="signInTime != null">sign_in_time,</if>
+            <if test="signOutTime != null">sign_out_time,</if>
+            <if test="remark != null">remark,</if>
+            <if test="auditStatus != null and auditStatus != ''">audit_status,</if>
+            <if test="carpoolGroupId != null">carpool_group_id,</if>
+            <if test="shareCode != null and shareCode != ''">share_code,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="seatId != null">#{seatId},</if>
+            <if test="status != null and status != ''">#{status},</if>
+            <if test="reservationStatus != null and reservationStatus != ''">#{reservationStatus},</if>
+            <if test="reservationInTime != null">#{reservationInTime},</if>
+            <if test="reservationOutTime != null">#{reservationOutTime},</if>
+            <if test="signInTime != null">#{signInTime},</if>
+            <if test="signOutTime != null">#{signOutTime},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="auditStatus != null and auditStatus != ''">#{auditStatus},</if>
+            <if test="carpoolGroupId != null">#{carpoolGroupId},</if>
+            <if test="shareCode != null and shareCode != ''">#{shareCode},</if>
+         </trim>
+    </insert>
+
+    <update id="updateRoomReservation" parameterType="RoomReservation">
+        update room_reservation
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="seatId != null">seat_id = #{seatId},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="reservationStatus != null and reservationStatus != ''">reservation_status = #{reservationStatus},</if>
+            <if test="reservationInTime != null">reservation_in_time = #{reservationInTime},</if>
+            <if test="reservationOutTime != null">reservation_out_time = #{reservationOutTime},</if>
+            <if test="signInTime != null">sign_in_time = #{signInTime},</if>
+            <if test="signOutTime != null">sign_out_time = #{signOutTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="auditStatus != null and auditStatus != ''">audit_status = #{auditStatus},</if>
+            <if test="carpoolGroupId != null">carpool_group_id = #{carpoolGroupId},</if>
+            <if test="shareCode != null">share_code = #{shareCode},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteRoomReservationById" parameterType="Long">
+        delete from room_reservation where id = #{id}
+    </delete>
+
+    <delete id="deleteRoomReservationByIds" parameterType="String">
+        delete from room_reservation where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

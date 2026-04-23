@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.room.reservation.mapper.RoomMapper">
+
+    <resultMap type="Room" id="RoomResult">
+        <result property="id"    column="id"    />
+        <result property="name"    column="name"    />
+        <result property="image"    column="image"    />
+        <result property="location"    column="location"    />
+        <result property="rowsCount"    column="rows_count"    />
+        <result property="colsCount"    column="cols_count"    />
+        <result property="openTime"    column="open_time"    />
+        <result property="closeTime"    column="close_time"    />
+        <result property="status"    column="status"    />
+        <result property="comfortScore"    column="comfort_score"    />
+        <result property="areaZone"    column="area_zone"    />
+        <result property="seatRuleNote"    column="seat_rule_note"    />
+        <result property="latitude"    column="latitude"    />
+        <result property="longitude"    column="longitude"    />
+        <result property="signRadiusMeter"    column="sign_radius_meter"    />
+    </resultMap>
+
+    <sql id="selectRoomVo">
+        select id, name, image, location, rows_count, cols_count, open_time, close_time, status, comfort_score, area_zone, seat_rule_note, latitude, longitude, sign_radius_meter from room
+    </sql>
+
+    <select id="selectRoomList" parameterType="Room" resultMap="RoomResult">
+        <include refid="selectRoomVo"/>
+        <where>
+            <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
+            <if test="location != null  and location != ''"> and location = #{location}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+
+    <select id="selectRoomById" parameterType="Integer" resultMap="RoomResult">
+        <include refid="selectRoomVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectUsingCountByRoom" resultType="java.util.HashMap">
+        select s.room_id as roomId, count(1) as cnt
+        from room_reservation r
+        inner join room_seat s on r.seat_id = s.id
+        where r.reservation_status in ('已预约', '使用中')
+          and (r.audit_status is null or r.audit_status != '已拒绝')
+        group by s.room_id
+    </select>
+
+    <select id="selectUsingCountForRoom" resultType="int">
+        select ifnull(count(1), 0)
+        from room_reservation r
+        inner join room_seat s on r.seat_id = s.id
+        where s.room_id = #{roomId}
+          and r.reservation_status in ('已预约', '使用中')
+          and (r.audit_status is null or r.audit_status != '已拒绝')
+    </select>
+
+    <insert id="insertRoom" parameterType="Room" useGeneratedKeys="true" keyProperty="id">
+        insert into room
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">name,</if>
+            <if test="image != null and image != ''">image,</if>
+            <if test="location != null and location != ''">location,</if>
+            <if test="rowsCount != null">rows_count,</if>
+            <if test="colsCount != null">cols_count,</if>
+            <if test="openTime != null">open_time,</if>
+            <if test="closeTime != null">close_time,</if>
+            <if test="status != null and status != ''">status,</if>
+            <if test="comfortScore != null">comfort_score,</if>
+            <if test="areaZone != null">area_zone,</if>
+            <if test="seatRuleNote != null">seat_rule_note,</if>
+            <if test="latitude != null">latitude,</if>
+            <if test="longitude != null">longitude,</if>
+            <if test="signRadiusMeter != null">sign_radius_meter,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">#{name},</if>
+            <if test="image != null and image != ''">#{image},</if>
+            <if test="location != null and location != ''">#{location},</if>
+            <if test="rowsCount != null">#{rowsCount},</if>
+            <if test="colsCount != null">#{colsCount},</if>
+            <if test="openTime != null">#{openTime},</if>
+            <if test="closeTime != null">#{closeTime},</if>
+            <if test="status != null and status != ''">#{status},</if>
+            <if test="comfortScore != null">#{comfortScore},</if>
+            <if test="areaZone != null">#{areaZone},</if>
+            <if test="seatRuleNote != null">#{seatRuleNote},</if>
+            <if test="latitude != null">#{latitude},</if>
+            <if test="longitude != null">#{longitude},</if>
+            <if test="signRadiusMeter != null">#{signRadiusMeter},</if>
+        </trim>
+    </insert>
+
+    <update id="updateRoom" parameterType="Room">
+        update room
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="image != null and image != ''">image = #{image},</if>
+            <if test="location != null and location != ''">location = #{location},</if>
+            <if test="rowsCount != null">rows_count = #{rowsCount},</if>
+            <if test="colsCount != null">cols_count = #{colsCount},</if>
+            <if test="openTime != null">open_time = #{openTime},</if>
+            <if test="closeTime != null">close_time = #{closeTime},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="comfortScore != null">comfort_score = #{comfortScore},</if>
+            <if test="areaZone != null">area_zone = #{areaZone},</if>
+            <if test="seatRuleNote != null">seat_rule_note = #{seatRuleNote},</if>
+            <if test="latitude != null">latitude = #{latitude},</if>
+            <if test="longitude != null">longitude = #{longitude},</if>
+            <if test="signRadiusMeter != null">sign_radius_meter = #{signRadiusMeter},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteRoomById" parameterType="Integer">
+        delete from room where id = #{id}
+    </delete>
+
+    <delete id="deleteRoomByIds" parameterType="String">
+        delete from room where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
