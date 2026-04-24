@@ -1,7 +1,8 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { listRoom, listSeat, updateSeat, getOverview, listFeedback, updateFeedbackStatus } from '@/api/assistant'
-import { listReservation, updateReservation } from '@/api/reservation'
+import { listReservation, updateReservation, auditReservation } from '@/api/reservation'
+import { releaseBlacklistByUser } from '@/api/thesis'
 import request from '@/utils/request'
 import { useUserStore } from '@/stores/modules/user'
 
@@ -240,17 +241,36 @@ function releaseBan(item) {
     content: '确认解除禁约？',
     success(res) {
       if (!res.confirm) return
-      updateReservationStatus(item, {
-        reservationStatus: '完成预约',
-        signOutTime: nowPlus8(),
-      }).then((r) => {
-        if (r.data.code === 200) {
+      Promise.all([
+        updateReservationStatus(item, {
+          status: '正常',
+          reservationStatus: '取消预约',
+        }),
+        item?.userId
+          ? releaseBlacklistByUser({ userId: item.userId, remark: '管理员在移动管理端解除禁约' })
+          : Promise.resolve({ data: { code: 200 } }),
+      ]).then(([r]) => {
+        if (r?.data?.code === 200) {
           uni.showToast({ title: '解除禁约成功', icon: 'success' })
           loadReservations()
           loadViolationReservations()
         }
       })
     },
+  })
+}
+
+function doAudit(item, auditStatus, successText) {
+  if (!item?.id) return
+  auditReservation({ id: item.id, auditStatus }).then((r) => {
+    if (r?.data?.code === 200) {
+      uni.showToast({ title: successText, icon: 'success' })
+      loadPendingAudits()
+      loadReservations()
+      loadViolationReservations()
+    } else {
+      uni.showToast({ title: r?.data?.msg || '操作失败', icon: 'none' })
+    }
   })
 }
 
@@ -526,8 +546,8 @@ onMounted(() => {
           <text class="reserve-meta">用户ID：{{ r.userId }}</text>
           <text class="reserve-meta">预约时间：{{ r.reservationInTime }} ~ {{ r.reservationOutTime }}</text>
           <view class="reserve-actions">
-            <button size="mini" type="primary" @click="updateReservationStatus(r, { auditStatus: '已通过' }).then(loadPendingAudits)">通过</button>
-            <button size="mini" type="warn" @click="updateReservationStatus(r, { auditStatus: '已驳回' }).then(loadPendingAudits)">驳回</button>
+            <button size="mini" type="primary" @click="doAudit(r, '已通过', '审核已通过')">通过</button>
+            <button size="mini" type="warn" @click="doAudit(r, '已拒绝', '已驳回')">驳回</button>
           </view>
         </view>
         <view v-if="!pendingAudits.length" class="tip">暂无待审核订单</view>

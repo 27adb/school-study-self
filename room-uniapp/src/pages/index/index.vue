@@ -1,9 +1,9 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { listReservation } from '@/api/reservation'
 import { baseURL } from '@/utils/request'
 import { getInfo } from '@/api/login'
+import { getBanStatus } from '@/api/thesis'
 import { goLogin, isAuthExpiredResponse } from '@/utils/auth'
 import { useUserStore } from '@/stores/modules/user'
 import MyReservation from '@/components/MyReservation.vue'
@@ -45,33 +45,22 @@ function stopAutoplay() {
 }
 
 function getReservation() {
-  listReservation({ userId: userStore.user.userId, pageNum: 1, pageSize: 200 }).then((res) => {
-    const rows = res?.data?.rows || []
-    const violationRows = rows.filter((item) => {
-      const isMarked = item.status === '违约' || item.reservationStatus === '违约中'
-      const inAt = item.reservationInTime ? new Date(String(item.reservationInTime).replace(/-/g, '/')).getTime() : NaN
-      const outAt = item.reservationOutTime ? new Date(String(item.reservationOutTime).replace(/-/g, '/')).getTime() : NaN
-      const noShow = item.reservationStatus === '已预约' && Number.isFinite(inAt) && Date.now() > inAt + 15 * 60 * 1000
-      const overtime = item.reservationStatus === '使用中' && Number.isFinite(outAt) && Date.now() > outAt
-      return isMarked || noShow || overtime
-    })
-    const total = violationRows.length
-    defaultNumber.value = total
-    if (total >= 3 && violationRows.length) {
+  getBanStatus().then((res) => {
+    const body = res?.data || {}
+    const data = body?.data || {}
+    const blacklist = data.blacklist || null
+    defaultNumber.value = Number(data.violationCount || 0)
+    if (body.code === 200 && data.active && blacklist) {
       defaultStatus.value = 'banned'
-      const latest = [...violationRows].sort((a, b) => new Date(b.reservationOutTime || 0) - new Date(a.reservationOutTime || 0))[0]
-      const startDate = new Date(latest.reservationOutTime)
-      const endDate = new Date(startDate)
-      endDate.setDate(startDate.getDate() + banDays.value)
-      startTime.value = formatDate(startDate)
-      endTime.value = formatDate(endDate)
+      startTime.value = blacklist.createTime || ''
+      endTime.value = blacklist.untilDate || ''
       updateRemainingTime()
-      remark.value = latest.remark || ''
+      remark.value = blacklist.reason || blacklist.remark || ''
       if (!violationWarnShown.value) {
         violationWarnShown.value = true
         uni.showModal({
           title: '违约提醒',
-          content: `你当前累计违约 ${total} 次，已进入禁约状态，请联系管理员处理。\n原因：${remark.value || '未按时签到/签退'}`,
+          content: `你当前处于禁约状态，请联系管理员处理。\n解除时间：${endTime.value || '待定'}\n原因：${remark.value || '未按时签到/签退'}`,
           showCancel: false,
           confirmText: '我知道了',
         })

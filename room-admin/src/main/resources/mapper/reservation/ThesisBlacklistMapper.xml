@@ -8,6 +8,15 @@
         where user_id = #{userId} and status = '0' and until_date &gt;= curdate()
     </select>
 
+    <select id="selectActiveByUserId" resultMap="BlacklistResult">
+        select <include refid="cols"/> from room_blacklist
+        where user_id = #{userId}
+          and status = '0'
+          and until_date &gt;= curdate()
+        order by until_date desc, id desc
+        limit 1
+    </select>
+
     <resultMap id="BlacklistResult" type="BlacklistEntry">
         <id property="id" column="id"/>
         <result property="userId" column="user_id"/>

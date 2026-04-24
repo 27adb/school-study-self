@@ -2,6 +2,7 @@ package com.room.reservation.controller;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,10 +30,12 @@ import com.room.reservation.domain.UserCourseSchedule;
 import com.room.reservation.mapper.CarpoolGroupMapper;
 import com.room.reservation.mapper.RepairTicketMapper;
 import com.room.reservation.mapper.RoomReservationMapper;
+import com.room.reservation.mapper.ThesisBlacklistMapper;
 import com.room.reservation.service.IRoomSeatService;
 import com.room.reservation.mapper.ThesisAppReminderMapper;
 import com.room.reservation.mapper.ThesisStudyMapper;
 import com.room.reservation.mapper.UserCourseScheduleMapper;
+import com.room.reservation.mapper.ViolationRecordMapper;
 import com.room.reservation.service.IRoomReservationService;
 
 @RestController
@@ -62,6 +65,12 @@ public class ThesisStudentController extends BaseController
 
     @Autowired
     private IRoomSeatService roomSeatService;
+
+    @Autowired
+    private ThesisBlacklistMapper thesisBlacklistMapper;
+
+    @Autowired
+    private ViolationRecordMapper violationRecordMapper;
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/courses")
@@ -93,6 +102,18 @@ public class ThesisStudentController extends BaseController
     public AjaxResult reminders()
     {
         return success(thesisAppReminderMapper.selectUnreadByUser(SecurityUtils.getUserId()));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/banStatus")
+    public AjaxResult banStatus()
+    {
+        Long userId = SecurityUtils.getUserId();
+        Map<String, Object> data = new HashMap<>();
+        data.put("active", thesisBlacklistMapper.countActiveByUserId(userId) > 0);
+        data.put("violationCount", violationRecordMapper.countSince(userId, null));
+        data.put("blacklist", thesisBlacklistMapper.selectActiveByUserId(userId));
+        return success(data);
     }
 
     @PreAuthorize("isAuthenticated()")

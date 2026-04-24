@@ -39,7 +39,7 @@
 </template>
 
 <script>
-import { listFeedback, updateFeedbackStatus } from '@/api/thesis/admin'
+import { listFeedback, updateFeedbackStatus, releaseBlacklistByUser } from '@/api/thesis/admin'
 import { listReservation, updateReservation } from '@/api/reservation/reservation'
 export default {
   name: 'ThesisFeedback',
@@ -75,17 +75,19 @@ export default {
       }).then(async (res) => {
         const rows = res.rows || []
         const vioRows = rows.filter(r => r.status === '违约' || r.reservationStatus === '违约中')
-        if (!vioRows.length) {
-          this.$modal.msgWarning('该用户当前无违约记录')
-          return
+        const jobs = []
+        if (vioRows.length) {
+          jobs.push(...vioRows.map(r => updateReservation({
+            id: r.id,
+            status: '正常',
+            reservationStatus: '取消预约',
+            remark: (r.remark || '') + '；管理员在反馈页解除禁约'
+          })))
         }
-        await Promise.all(vioRows.map(r => updateReservation({
-          id: r.id,
-          status: '正常',
-          reservationStatus: '取消预约',
-          remark: (r.remark || '') + '；管理员在反馈页解除禁约'
-        })))
-        this.$modal.msgSuccess(`已解除 ${vioRows.length} 条违约记录`)
+        jobs.push(releaseBlacklistByUser({ userId: uid, remark: '管理员在反馈页解除禁约' }))
+        await Promise.all(jobs)
+        this.$modal.msgSuccess(vioRows.length ? `已解除禁约并恢复 ${vioRows.length} 条订单` : '已解除禁约')
+        this.getList()
       }).catch(() => {})
     }
   }

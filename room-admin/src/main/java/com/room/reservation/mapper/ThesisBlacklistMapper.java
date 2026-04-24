@@ -8,6 +8,8 @@ public interface ThesisBlacklistMapper
 {
     int countActiveByUserId(@Param("userId") Long userId);
 
+    BlacklistEntry selectActiveByUserId(@Param("userId") Long userId);
+
     List<BlacklistEntry> selectBlacklistList(BlacklistEntry query);
 
     BlacklistEntry selectBlacklistById(Long id);

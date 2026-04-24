@@ -70,6 +70,14 @@ public interface RoomReservationMapper
     public List<RoomReservation> selectNoSignInOverdue(int minutes);
 
     /**
+     * 预约结束超过 minutes 分钟仍未签退的订单
+     *
+     * @param minutes 分钟数
+     * @return 订单列表
+     */
+    public List<RoomReservation> selectSignOutOverdue(int minutes);
+
+    /**
      * 座位在时段内是否与有效预约重叠（排除指定订单）
      */
     public int countSeatOverlap(@Param("seatId") Long seatId, @Param("start") Date start,

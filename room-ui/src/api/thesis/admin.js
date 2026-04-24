@@ -18,6 +18,9 @@ export function addBlacklist(data) {
 export function updateBlacklist(data) {
   return request({ url: '/thesis/admin/blacklist', method: 'put', data })
 }
+export function releaseBlacklistByUser(data) {
+  return request({ url: '/thesis/admin/blacklist/releaseByUser', method: 'put', data })
+}
 export function listRepair(query) {
   return request({ url: '/thesis/admin/repair/list', method: 'get', params: query })
 }

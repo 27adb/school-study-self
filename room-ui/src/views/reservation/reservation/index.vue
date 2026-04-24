@@ -186,6 +186,7 @@
 <script>
 import { listReservation, getReservation, delReservation, addReservation, updateReservation, auditReservation } from "@/api/reservation/reservation"
 import { listUser } from "@/api/system/user"
+import { releaseBlacklistByUser } from "@/api/thesis/admin"
 
 export default {
   name: "Reservation",
@@ -383,12 +384,18 @@ export default {
     handleUnlock(row) {
       const id = row.id
       this.$modal.confirm('确认解锁该订单？').then(() => {
-        return updateReservation({
-          id,
-          status: '正常',
-          // 只要不是“违约中”，前端禁约校验就会放开
-          reservationStatus: '取消预约',
-        })
+        const jobs = [
+          updateReservation({
+            id,
+            status: '正常',
+            // 只要不是“违约中”，前端禁约校验就会放开
+            reservationStatus: '取消预约',
+          })
+        ]
+        if (row.userId) {
+          jobs.push(releaseBlacklistByUser({ userId: row.userId, remark: '管理员在预约管理页解除禁约' }))
+        }
+        return Promise.all(jobs)
       }).then(() => {
         this.$modal.msgSuccess('解锁成功')
         this.getList()

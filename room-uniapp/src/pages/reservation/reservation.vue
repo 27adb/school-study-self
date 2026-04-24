@@ -5,11 +5,10 @@ import { listRoom, getRoom } from '@/api/room'
 import { listSeat } from '@/api/seat'
 import { listReservation, addReservation } from '@/api/reservation'
 import { getRecommend, getGroupRecommend } from '@/api/assistant'
-import { createCarpool, joinCarpool } from '@/api/thesis'
+import { createCarpool, joinCarpool, getBanStatus } from '@/api/thesis'
 import { listNotice } from '@/api/notice'
 import { baseURL } from '@/utils/request'
 import { goLogin } from '@/utils/auth'
-import { runStudentViolationCheck } from '@/utils/violation'
 import { useUserStore } from '@/stores/modules/user'
 
 const userStore = useUserStore()
@@ -311,49 +310,57 @@ function joinCarpoolBtn() {
   })
 }
 
-function reservationBtn() {
+async function reservationBtn() {
   if (!reservationData.value.userId) return
-  runStudentViolationCheck(userStore.user.userId).then((check) => {
-    if (check.noShowMarked > 0) {
-      uni.showToast({ title: `检测到 ${check.noShowMarked} 条违约，已更新状态`, icon: 'none' })
-    }
-    listReservation({ userId: userStore.user.userId, pageNum: 1, pageSize: 200 }).then((res) => {
-      const rows = res.data.rows || []
-      const violationCount = rows.filter((item) => item.status === '违约' || item.reservationStatus === '违约中').length
-      if (violationCount >= 3) {
-        return uni.showModal({
-          title: '禁约提示',
-          content: `你当前累计违约 ${violationCount} 次，已被禁约，请联系管理员处理。`,
-          showCancel: false,
-        })
-      }
-      const payload = { ...reservationData.value }
-      if (carpoolGroupId.value) payload.carpoolGroupId = carpoolGroupId.value
-      addReservation(payload).then((r) => {
-        const body = r.data
-        if (body && body.code === 200) {
-          roomShow.value = false
-          const msg = [
-            `预约时间：${reservationData.value.reservationInTime} ~ ${reservationData.value.reservationOutTime}`,
-            '请在规则要求时间内完成签到，逾期将计入违约。',
-            `公告规则：${reservationRuleText.value}`,
-          ].join('\n')
-          uni.showModal({
-            title: '预约成功提醒',
-            content: msg,
-            showCancel: false,
-            confirmText: '我知道了',
-            success: () => {
-              uni.$emit('refreshReservation')
-              uni.switchTab({ url: '/pages/index/index' })
-            },
-          })
-        } else {
-          uni.showToast({ title: (body && body.msg) || '预约失败', icon: 'none' })
-        }
+  try {
+    const banRes = await getBanStatus()
+    const banBody = banRes?.data || {}
+    const banData = banBody?.data || {}
+    if (banBody.code === 200 && banData.active) {
+      const blacklist = banData.blacklist || {}
+      uni.showModal({
+        title: '禁约提示',
+        content: `你当前处于禁约状态，暂不可预约。\n解除时间：${blacklist.untilDate || '待定'}\n原因：${blacklist.reason || blacklist.remark || '累计违规'}`,
+        showCancel: false,
       })
-    })
-  })
+      return
+    }
+
+    const res = await listReservation({ userId: userStore.user.userId, pageNum: 1, pageSize: 200 })
+    const rows = res.data.rows || []
+    const latest = rows.find((item) => item.reservationStatus === '已预约' || item.reservationStatus === '使用中')
+    if (latest) {
+      uni.showToast({ title: '你已预约，不可重复预约', icon: 'none' })
+      return
+    }
+
+    const payload = { ...reservationData.value }
+    if (carpoolGroupId.value) payload.carpoolGroupId = carpoolGroupId.value
+    const r = await addReservation(payload)
+    const body = r.data
+    if (body && body.code === 200) {
+      roomShow.value = false
+      const msg = [
+        `预约时间：${reservationData.value.reservationInTime} ~ ${reservationData.value.reservationOutTime}`,
+        '请在规则要求时间内完成签到，逾期将计入违约。',
+        `公告规则：${reservationRuleText.value}`,
+      ].join('\n')
+      uni.showModal({
+        title: '预约成功提醒',
+        content: msg,
+        showCancel: false,
+        confirmText: '我知道了',
+        success: () => {
+          uni.$emit('refreshReservation')
+          uni.switchTab({ url: '/pages/index/index' })
+        },
+      })
+    } else {
+      uni.showToast({ title: (body && body.msg) || '预约失败', icon: 'none' })
+    }
+  } catch (_e) {
+    uni.showToast({ title: '预约失败，请检查网络或稍后重试', icon: 'none' })
+  }
 }
 
 onShow(() => {

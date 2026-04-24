@@ -32,6 +32,14 @@ export function updateReservation(data) {
   })
 }
 
+export function auditReservation(data) {
+  return request({
+    url: '/reservation/reservation/audit',
+    method: 'put',
+    data,
+  })
+}
+
 export function delReservation(id) {
   return request({
     url: `/reservation/reservation/${id}`,

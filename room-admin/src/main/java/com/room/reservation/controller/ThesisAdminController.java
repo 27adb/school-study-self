@@ -173,6 +173,33 @@ public class ThesisAdminController extends BaseController
         return toAjax(thesisBlacklistMapper.updateBlacklist(row));
     }
 
+    @PreAuthorize("@ss.hasPermi('thesis:blacklist:edit')")
+    @PutMapping("/blacklist/releaseByUser")
+    public AjaxResult releaseBlacklistByUser(@RequestBody Map<String, Object> body)
+    {
+        if (body == null || body.get("userId") == null)
+        {
+            return error("userId 不能为空");
+        }
+        Long userId = Long.valueOf(body.get("userId").toString());
+        String remark = body.get("remark") == null ? "管理员手动解除禁约" : body.get("remark").toString();
+        BlacklistEntry query = new BlacklistEntry();
+        query.setUserId(userId);
+        query.setStatus("0");
+        List<BlacklistEntry> activeRows = thesisBlacklistMapper.selectBlacklistList(query);
+        int released = 0;
+        for (BlacklistEntry row : activeRows)
+        {
+            row.setStatus("1");
+            String oldRemark = row.getRemark();
+            row.setRemark(StringUtils.isEmpty(oldRemark) ? remark : oldRemark + "；" + remark);
+            released += thesisBlacklistMapper.updateBlacklist(row);
+        }
+        businessAuditMapper.insertAudit(userId, "解除禁约", "BLACKLIST", userId,
+                remark + "，共解除 " + released + " 条黑名单记录");
+        return success(released);
+    }
+
     @PreAuthorize("@ss.hasPermi('thesis:repair:list')")
     @GetMapping("/repair/list")
     public AjaxResult repairList(RepairTicket q)

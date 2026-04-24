@@ -18,6 +18,10 @@ export function readReminder(id) {
   return request({ url: '/student/thesis/reminders/read/' + id, method: 'post' })
 }
 
+export function getBanStatus() {
+  return request({ url: '/student/thesis/banStatus', method: 'get' })
+}
+
 export function getMedals() {
   return request({ url: '/student/thesis/medals', method: 'get' })
 }
@@ -42,4 +46,8 @@ export function submitRepair(data) {
 
 export function getShareText(id) {
   return request({ url: '/student/thesis/reservation/share/' + id, method: 'get' })
+}
+
+export function releaseBlacklistByUser(data) {
+  return request({ url: '/thesis/admin/blacklist/releaseByUser', method: 'put', data })
 }

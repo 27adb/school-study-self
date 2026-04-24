@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import com.room.reservation.service.IRoomReservationService;
 
 /**
- * 预约开始后 N 分钟内未签到自动释放座位（N 取自参数 reservation.noSignIn.releaseMinutes）
+ * 预约开始后未签到、预约结束后未签退的订单自动判定违规并释放座位
  */
 @Component
 public class ReservationNoSignInScheduleTask
@@ -18,5 +18,6 @@ public class ReservationNoSignInScheduleTask
     public void releaseNoSignIn()
     {
         roomReservationService.releaseNoSignInReservations();
+        roomReservationService.markOvertimeReservations();
     }
 }

@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -45,6 +46,7 @@ public class ReservationAssistantController extends BaseController
     @Autowired
     private IFeedbackRecordService feedbackRecordService;
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/overview")
     public AjaxResult overview(Integer roomId)
     {
@@ -77,6 +79,7 @@ public class ReservationAssistantController extends BaseController
         return AjaxResult.success(data);
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/recommend")
     public AjaxResult recommend(Integer roomId, String reservationInTime, String reservationOutTime)
     {
@@ -120,6 +123,7 @@ public class ReservationAssistantController extends BaseController
         return AjaxResult.success(data);
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/groupRecommend")
     public AjaxResult groupRecommend(Integer roomId, Integer size, String reservationInTime, String reservationOutTime)
     {
@@ -179,6 +183,7 @@ public class ReservationAssistantController extends BaseController
         return AjaxResult.error("未找到连续拼座");
     }
 
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/feedback")
     public AjaxResult addFeedback(@RequestBody FeedbackRecord feedbackRecord)
     {
@@ -191,14 +196,23 @@ public class ReservationAssistantController extends BaseController
         return toAjax(feedbackRecordService.insertFeedbackRecord(feedbackRecord));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/feedback/list")
     public TableDataInfo listFeedback(FeedbackRecord query)
     {
+        FeedbackRecord actual = query == null ? new FeedbackRecord() : query;
+        boolean canViewAll = SecurityUtils.hasPermi("thesis:feedback:list")
+                || SecurityUtils.hasPermi("thesis:feedback:query");
+        if (!canViewAll)
+        {
+            actual.setUserId(SecurityUtils.getUserId());
+        }
         startPage();
-        List<FeedbackRecord> list = feedbackRecordService.selectFeedbackRecordList(query);
+        List<FeedbackRecord> list = feedbackRecordService.selectFeedbackRecordList(actual);
         return getDataTable(list);
     }
 
+    @PreAuthorize("@ss.hasAnyPermi('thesis:feedback:list,thesis:feedback:query')")
     @PutMapping("/feedback/{id}/status")
     public AjaxResult updateFeedbackStatus(@PathVariable Long id, @RequestBody FeedbackRecord feedbackRecord)
     {

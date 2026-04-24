@@ -22,8 +22,8 @@ function resolveBaseURL() {
     fromPlatformEnv = import.meta.env.VITE_APP_API_BASE || ''
   }
   if (fromPlatformEnv) return fromPlatformEnv
-  // 真机调试时使用电脑 IP，H5 开发时使用代理
-  return platform === 'h5' ? '/api' : 'http://192.168.143.160:8080'
+  // H5 开发时使用代理；小程序开发者工具默认走本机后端，真机调试请在 .env.development 中改为电脑局域网 IP
+  return platform === 'h5' ? '/api' : 'http://127.0.0.1:8080'
 }
 
 export const baseURL = resolveBaseURL()

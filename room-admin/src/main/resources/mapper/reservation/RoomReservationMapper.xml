@@ -51,6 +51,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           and timestampdiff(MINUTE, reservation_in_time, now()) &gt;= #{minutes}
     </select>
 
+    <select id="selectSignOutOverdue" resultMap="RoomReservationResult">
+        <include refid="selectRoomReservationVo"/>
+        where reservation_status = '使用中'
+          and sign_out_time is null
+          and reservation_out_time is not null
+          and (audit_status is null or audit_status in ('无需审核', '已通过'))
+          and timestampdiff(MINUTE, reservation_out_time, now()) &gt;= #{minutes}
+    </select>
+
     <select id="countSeatOverlap" resultType="int">
         select count(*) from room_reservation
         where seat_id = #{seatId}

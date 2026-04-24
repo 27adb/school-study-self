@@ -78,4 +78,9 @@ public interface IRoomReservationService
      * 定时：释放超时未签到预约（分钟数来自参数 reservation.noSignIn.releaseMinutes）
      */
     public void releaseNoSignInReservations();
+
+    /**
+     * 定时：将超时未签退的订单标记为违约并释放座位
+     */
+    public void markOvertimeReservations();
 }
